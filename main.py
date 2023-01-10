@@ -26,22 +26,16 @@ def RunModel(seed, param) :
     print('Current m parameter running', m)
     Classes.m = param
     Functions.m = param
-    #Simulation parameters
-    # This part changes parameters value for long autonomous runs
-    #d = param
-    #classes.d = param
-    #fonctions.d = param
 
     # Stocker les sorties dans un dictionnaire
     dico_densities_df = {}
 
     # Simulation parameters
-    seed =0
     np.random.seed(seed) #Set seed for reproducibility
     nb_iterations = 0 #Store the number of interations to define times that are saved (later)
     sim_time = 0.0 # Simulation time (model time, not an iteration number)
     vectime = [0] # to keep t variable
-    tmax = 30 # Ending time
+    tmax = 10 # Ending time
     nbpatches = Parameters.nbpatches # Number of patches
     Taillepop = Parameters.Taillepop # Initial local population sizes
 
@@ -149,8 +143,8 @@ def RunModel(seed, param) :
 
 
         # Update time
-        sim_time += Tau
-        print('Effectifs', SumS, SumI, SumR)
+        sim_time += Tau[0]
+        #print('Effectifs', SumS, SumI, SumR)
         # print('time increment', Tau)
         # print('Le temps passe si vite',sim_time)
 
@@ -188,25 +182,25 @@ def RunModel(seed, param) :
                 else:
                     dataprop[colname] = Propensities_out[index - 1]
             # Saving into .csv file
-            dataprop.to_csv('Propensities_outputs_' + str(seed) + '.csv')
+            dataprop.to_csv('Propensities_outputs_m'+str(param)+ "_" + str(seed) + '.csv')
 
     #Creating the time series dataframe
-        datadensity = pd.DataFrame.from_dict(data=dico_densities_df)
-        VectimeDf = pd.DataFrame(data=vectime)
-        datadensity.insert(0, "Time", VectimeDf, allow_duplicates=False)
-        datadensity.to_csv('Sim_out' + '_' + str(seed) + '.csv')
+    datadensity = pd.DataFrame.from_dict(data=dico_densities_df)
+    print("YOOOOOOOOOOOOOOUHOUUUUUUUUUUUUUUUUU", len(datadensity))
+    VectimeDf = pd.DataFrame(data=vectime)
+    datadensity.insert(0, "Time", VectimeDf, allow_duplicates=False)
+    datadensity.to_csv('Sim_outputs_m'+str(param)+ "_" + str(seed) + '.csv')
 
 ################### MULTIPROCESSING PART ###########
 
 
 # Paramètres de multiprocessing
 list_seeds = [1,2,3,4,5,6]
-list_params =[0.5]
+list_params =[0.1,0.2,0.3,0.4,0.5]
 nbsims = len(list_seeds)
 
 
 # In the end, list_params must contain each parameters combinations
-
 #Launch a batch of nbsim simulations
 #Do not f*ck with that guy otherwise the whole computer can crash
 if __name__ == '__main__':
@@ -216,7 +210,7 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool(processes=CPUnb) # I don't really know what this is doing, probably creating some kind of logical space for thread assignation
     for j in range(len(list_params)) :
         for i in range(nbsims):
-            #pool.apply_async(RunModel, args=(list_seeds[i],list_params[j])) # Launch Nbsim simulation, beware because that makes you loose error messages
-            RunModel(list_seeds[i],list_params[j]) #Launch sims one by one, by makes the error messages reappear (useful for debugging)
+            pool.apply_async(RunModel, args=(list_seeds[i],list_params[j])) # Launch Nbsim simulation, beware because that makes you loose error messages
+            #RunModel(list_seeds[i],list_params[j]) #Launch sims one by one, by makes the error messages reappear (useful for debugging)
     pool.close() # Ends something
     pool.join() # Do something
