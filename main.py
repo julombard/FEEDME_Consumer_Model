@@ -4,6 +4,7 @@ import pandas as pd
 import multiprocessing
 import Classes
 import Parameters
+import itertools
 #A story inspired by Modified Poisson Tau leap algorithm from cao et. al. (2006)
 #Including New features for metapopulations modelling, designed by Massol F., Lion S. and bibi
 #Damn efficient compared to previous try (on lab laptop 100 sites simulated over 16K iterations took 2'30)
@@ -193,7 +194,7 @@ def RunModel(seed,IDsim, vecparam) :
                 else:
                     dataprop[colname] = Propensities_out[index - 1]
             # Saving into .csv file
-            dataprop.to_csv('Propensities_outputs_m'+str(param)+ "_" + str(seed) + '.csv')
+            dataprop.to_csv('Propensities_outputs_' + str(seed) + '.csv')
 
     #Creating the time series dataframe
     datadensity = pd.DataFrame.from_dict(data=dico_densities_df)
@@ -217,22 +218,26 @@ def RunModel(seed,IDsim, vecparam) :
 list_seeds = [1]
 nbsims = len(list_seeds)
 
-#Creating A vector of parameter specified externally
-vec_param = []
-
-#Interesting parameters to varu
-
-beta = Parameters.beta  #Infectious contact rate, because parasite property
-gamma = Parameters.gamma  #Proportion of vertical transmission, because parasite property
-v = Parameters.v # Virulence, because parasite property
-m = Parameters.m # Dispersal propensity, because parasite property
-theta = Parameters.theta # Medium supply, Because why not
-
 #Create a list of parameters
 #Sorting matters ! Follow this one : beta, gamma, v , m , theta
-vec_param =[0.1,0.2,0.3,0.4,0.5]
+dict_param = {}
 
-dict_param = {'ID' : vec_param}
+# Create parameters combinations
+beta_levels = [0.1,0.2]
+gamma_levels = [0.1]
+v_levels = [0.1]
+m_levels = [0.1]
+theta_levels = [0.1]
+
+Superlist = [beta_levels,gamma_levels,v_levels,m_levels,theta_levels] # List of list of levels, listception is my leitmotiv
+my_combinations = list(itertools.product(*Superlist)) # Compute the set of combination between lists and return it as a set of tuples
+print(my_combinations)
+print(len(my_combinations))
+
+dico_param = {} # Enable an empty dictionary
+for i in range(len(my_combinations)) :
+    dict_param[str(i)] = list(my_combinations[i]) # Assign each tuple (converted into list of param) to a specific ID
+print(dico_param)
 
 
 # In the end, list_params must contain each parameters combinations
