@@ -19,13 +19,24 @@ e = Parameters.e # Ressource Encounter rate
 p = Parameters.p # Profitability (conversion ressource -> reproduction)
 theta = Parameters.theta # Medium supply
 
-def RunModel(seed, param) :
+def RunModel(seed,IDsim, vecparam) :
     #Simulation parameters
-    # This part changes parameters value for long autonomous runs
-    m = param
-    print('Current m parameter running', m)
-    Classes.m = param
-    Functions.m = param
+    print(IDsim, "ID")
+    print(vecparam,'Params')
+
+    beta = vecparam[0]  # Infectious contact rate, because parasite property
+    gamma = vecparam[1]  # Proportion of vertical transmission, because parasite property
+    v = vecparam[2]  # Virulence, because parasite property
+    m = vecparam[3]  # Dispersal propensity, because parasite property
+    theta = vecparam[4]  # Medium supply, Because why not
+
+    print('Current m parameter running', beta, gamma, v, m, theta)
+    #Update parameters needed in other files
+    Classes.beta = beta
+    Functions.beta = beta
+    Classes.m =m
+    Functions.m =m
+
 
     # Stocker les sorties dans un dictionnaire
     dico_densities_df = {}
@@ -189,15 +200,39 @@ def RunModel(seed, param) :
     print("YOOOOOOOOOOOOOOUHOUUUUUUUUUUUUUUUUU", len(datadensity))
     VectimeDf = pd.DataFrame(data=vectime)
     datadensity.insert(0, "Time", VectimeDf, allow_duplicates=False)
-    datadensity.to_csv('Sim_outputs_m'+str(param)+ "_" + str(seed) + '.csv')
+    #Complete the DF with parameters values
+    datadensity.insert(0, "beta", beta)
+    datadensity.insert(0, "gamma", gamma)
+    datadensity.insert(0, "v", v)
+    datadensity.insert(0, "m", m)
+    datadensity.insert(0, "theta", theta)
+
+
+    datadensity.to_csv('Sim_outputs_'+IDsim+ "_" + str(seed) + '.csv')
 
 ################### MULTIPROCESSING PART ###########
 
 
 # Paramètres de multiprocessing
-list_seeds = [1,2,3,4,5,6]
-list_params =[0.1,0.2,0.3,0.4,0.5]
+list_seeds = [1]
 nbsims = len(list_seeds)
+
+#Creating A vector of parameter specified externally
+vec_param = []
+
+#Interesting parameters to varu
+
+beta = Parameters.beta  #Infectious contact rate, because parasite property
+gamma = Parameters.gamma  #Proportion of vertical transmission, because parasite property
+v = Parameters.v # Virulence, because parasite property
+m = Parameters.m # Dispersal propensity, because parasite property
+theta = Parameters.theta # Medium supply, Because why not
+
+#Create a list of parameters
+#Sorting matters ! Follow this one : beta, gamma, v , m , theta
+vec_param =[0.1,0.2,0.3,0.4,0.5]
+
+dict_param = {'ID' : vec_param}
 
 
 # In the end, list_params must contain each parameters combinations
@@ -208,9 +243,9 @@ if __name__ == '__main__':
     CPUnb=multiprocessing.cpu_count()-2 #Carefully count the number of available threads, and leave two of them alone (in order to do something else when simulating)
     print('nb CPU: '+str(CPUnb))
     pool = multiprocessing.Pool(processes=CPUnb) # I don't really know what this is doing, probably creating some kind of logical space for thread assignation
-    for j in range(len(list_params)) :
+    for key in dict_param.keys():
         for i in range(nbsims):
-            pool.apply_async(RunModel, args=(list_seeds[i],list_params[j])) # Launch Nbsim simulation, beware because that makes you loose error messages
-            #RunModel(list_seeds[i],list_params[j]) #Launch sims one by one, by makes the error messages reappear (useful for debugging)
+            #pool.apply_async(RunModel, args=(list_seeds[i],key,dict_param[key])) # Launch Nbsim simulation, beware because that makes you loose error messages
+            RunModel(list_seeds[i],key,dict_param[key]) #Launch sims one by one, by makes the error messages reappear (useful for debugging)
     pool.close() # Ends something
     pool.join() # Do something
