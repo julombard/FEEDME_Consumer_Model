@@ -5,6 +5,7 @@ import multiprocessing
 import Classes
 import Parameters
 import itertools
+from copy import deepcopy
 #A story inspired by Modified Poisson Tau leap algorithm from cao et. al. (2006)
 #Including New features for metapopulations modelling, designed by Massol F., Lion S. and bibi
 #Damn efficient compared to previous try (on lab laptop 100 sites simulated over 16K iterations took 2'30)
@@ -29,6 +30,7 @@ def RunModel(seed,IDsim, vecparam) :
     gamma = vecparam[1]  # Proportion of vertical transmission, because parasite property
     v = vecparam[2]  # Virulence, because parasite property
     m = vecparam[3]  # Dispersal propensity, because parasite property
+    m_write = deepcopy(m) # Because the value of m can change during the run (due to closing, opening)
     theta = vecparam[4]  # Medium supply, Because why not
 
     print('Current m parameter running', beta, gamma, v, m, theta)
@@ -45,9 +47,9 @@ def RunModel(seed,IDsim, vecparam) :
     # Simulation parameters
     np.random.seed(seed) #Set seed for reproducibility
     nb_iterations = 0 #Store the number of interations to define times that are saved (later)
-    sim_time = 0.0 # Simulation time (model time, not an iteration number)
+    sim_time = 0.000001 # Simulation time (model time, not an iteration number)
     vectime = [0] # to keep t variable
-    tmax = 10 # Ending time
+    tmax = 50 # Ending time
     nbpatches = Parameters.nbpatches # Number of patches
     Taillepop = Parameters.Taillepop # Initial local population sizes
 
@@ -205,7 +207,7 @@ def RunModel(seed,IDsim, vecparam) :
     datadensity.insert(0, "beta", beta)
     datadensity.insert(0, "gamma", gamma)
     datadensity.insert(0, "v", v)
-    datadensity.insert(0, "m", m)
+    datadensity.insert(0, "m", m_write)
     datadensity.insert(0, "theta", theta)
 
 
@@ -215,7 +217,7 @@ def RunModel(seed,IDsim, vecparam) :
 
 
 # Paramètres de multiprocessing
-list_seeds = [1]
+list_seeds = [1,2,3,4,5,6]
 nbsims = len(list_seeds)
 
 #Create a list of parameters
@@ -223,16 +225,15 @@ nbsims = len(list_seeds)
 dict_param = {}
 
 # Create parameters combinations
-beta_levels = [0.1,0.2]
-gamma_levels = [0.1]
-v_levels = [0.1]
-m_levels = [0.1]
-theta_levels = [0.1]
+beta_levels = [0.1,0.5,0.9]
+gamma_levels = [0.1,0.5,0.9]
+v_levels =[0.1,0.5,0.9]
+m_levels = [0.1,0.5,0.9]
+theta_levels = [0.5,1.5,2.5]
 
 Superlist = [beta_levels,gamma_levels,v_levels,m_levels,theta_levels] # List of list of levels, listception is my leitmotiv
 my_combinations = list(itertools.product(*Superlist)) # Compute the set of combination between lists and return it as a set of tuples
-print(my_combinations)
-print(len(my_combinations))
+
 
 dico_param = {} # Enable an empty dictionary
 for i in range(len(my_combinations)) :
