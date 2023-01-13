@@ -1,4 +1,5 @@
 import Parameters
+global beta, d, gamma, v ,m, e, p, theta, Taillepop, nbpatches
 
 beta = Parameters.beta  #Infectious contact rate
 d = Parameters.d #Per capita natural death rate

@@ -2,8 +2,8 @@ import Functions
 import numpy as np
 import pandas as pd
 import multiprocessing
-import Classes
 import Parameters
+import Classes
 import itertools
 from copy import deepcopy
 #A story inspired by Modified Poisson Tau leap algorithm from cao et. al. (2006)
@@ -12,16 +12,17 @@ from copy import deepcopy
 #Parameters extracted from param files
 
 
-beta = Parameters.beta  #Infectious contact rate
-d = Parameters.d #Per capita natural death rate
-gamma = Parameters.gamma  #Proportion of vertical transmission
-v = Parameters.v # Virulence
-m = Parameters.m # Dispersal propensity
-e = Parameters.e # Ressource Encounter rate
-p = Parameters.p # Profitability (conversion ressource -> reproduction)
-theta = Parameters.theta # Medium supply
+#beta = Parameters.beta  #Infectious contact rate
+#d = Parameters.d #Per capita natural death rate
+#gamma = Parameters.gamma  #Proportion of vertical transmission
+#v = Parameters.v # Virulence
+#m = Parameters.m # Dispersal propensity
+#e = Parameters.e # Ressource Encounter rate
+#p = Parameters.p # Profitability (conversion ressource -> reproduction)
+#theta = Parameters.theta # Medium supply
 
 def RunModel(seed,IDsim, vecparam) :
+    global beta, d, gamma, v, m, e, p, theta, Taillepop, nbpatches
     #Simulation parameters
     print(IDsim, "ID")
     print(vecparam,'Params')
@@ -36,10 +37,15 @@ def RunModel(seed,IDsim, vecparam) :
     print('Current m parameter running', beta, gamma, v, m, theta)
     #Update parameters needed in other files
     Classes.beta = beta
+
     Functions.beta = beta
     Classes.m =m
     Functions.m =m
-
+    Classes.gamma = vecparam[1]  # Proportion of vertical transmission, because parasite property
+    Classes.v = vecparam[2]  # Virulence, because parasite property
+    Classes.m = vecparam[3]  # Dispersal propensity, because parasite property
+    m_write = deepcopy(m)  # Because the value of m can change during the run (due to closing, opening)
+    Classes.theta = vecparam[4]  # Medium supply, Because why not
 
     # Stocker les sorties dans un dictionnaire
     dico_densities_df = {}
@@ -47,7 +53,7 @@ def RunModel(seed,IDsim, vecparam) :
     # Simulation parameters
     np.random.seed(seed) #Set seed for reproducibility
     nb_iterations = 0 #Store the number of interations to define times that are saved (later)
-    sim_time = 0.000001 # Simulation time (model time, not an iteration number)
+    sim_time = 0 # Simulation time (model time, not an iteration number)
     vectime = [0] # to keep t variable
     tmax = 50 # Ending time
     nbpatches = Parameters.nbpatches # Number of patches
@@ -93,28 +99,47 @@ def RunModel(seed,IDsim, vecparam) :
 
         #Defnie the landscape configuration at given time -> Are the gates opened ?
         #Let's say that each X time, gates are openened during one time step
-        if sim_time%5 == 0 : # X=5
-            m = Parameters.m
+        if round(sim_time,0)%5 == 0.0 : # X=5
+            m = vecparam[3]
+            Classes.m = vecparam[3]
         else :
             m = 0
-
+            Classes.m = 0
+        #print('VOICI M', m, Classes.m)
         #Compute the propensities
         Propensities, Sum_propensities = Functions.GetPropensites(ListSites, Events) # Get a vector of propensities ordered by event and by sites
         #print("Propensities", Propensities)
+        #print("Sum Propensities", Sum_propensities)
+        #print("Events", Events)
         SumS, SumI, SumR = Functions.SumDensities(ListSites) # Get total densities of species
 
+        Tau_candidates = {}
+        events_indexes = {}
         # Defining the time increment according to Gillespie algorithm and First Reaction Method
-        r1 = np.random.uniform(0, 1, 1)  # Draw random numbers
-        a0 = sum(Sum_propensities)  # Overall propensity
+        for i in range(len(Events)) :
+            name_event = Events[i].name
+            r1 = np.random.uniform(0, 1, 1)  # Draw random numbers
+            aj = Sum_propensities[i]  # Propensity of the event
+            if aj==0:
+                Candidate =[0]
+            else :
+                Candidate = (1 / aj) * np.log(1 / r1)  # Time increment candidate
+                Tau_candidates[name_event] = Candidate[0] # Store the event and its tentative reaction
+                events_indexes[name_event] = i
 
-        Tau = (1 / a0) * np.log(1 / r1)  # Time increment
-        Probas = [i / a0 for i in Sum_propensities]  # Individual propensity
-        NextReaction = list(np.random.multinomial(1, Probas))  # List to get index easily
-        NextReactionIndex = NextReaction.index(1)
-        # print('The next reaction Index', NextReactionIndex)
+        Next_event = min(Tau_candidates, key=Tau_candidates.get) # Gives the name of the next event
+        Tau = Tau_candidates[Next_event] # Gives the time increment
+        #print(Tau)
+        #Probas = [i / a0 for i in Sum_propensities]  # Individual propensity
+        #NextReaction = list(np.random.multinomial(1, Probas))  # List to get index easily
+        NextReactionIndex = events_indexes[Next_event]
+        #print(NextReactionIndex)
+        #print('The next reaction ', Next_event)
 
         # Determine where the reaction is going to happen
+        #print('Next Reaction', Next_event)
         props = Propensities[NextReactionIndex]  # We get the propensity per sites
+        #print(props, "les props")
         sumprop = sum(props)
         proba_site = [i / sumprop for i in props]
         NextPlace = list(np.random.multinomial(1, proba_site))
@@ -157,8 +182,8 @@ def RunModel(seed,IDsim, vecparam) :
 
 
         # Update time
-        sim_time += Tau[0]
-        #print('Effectifs', SumS, SumI, SumR)
+        sim_time += Tau
+        print('Effectifs', SumS, SumI, SumR)
         # print('time increment', Tau)
         # print('Le temps passe si vite',sim_time)
 
@@ -200,7 +225,7 @@ def RunModel(seed,IDsim, vecparam) :
 
     #Creating the time series dataframe
     datadensity = pd.DataFrame.from_dict(data=dico_densities_df)
-    print("YOOOOOOOOOOOOOOUHOUUUUUUUUUUUUUUUUU", len(datadensity))
+    #print("YOOOOOOOOOOOOOOUHOUUUUUUUUUUUUUUUUU", len(datadensity))
     VectimeDf = pd.DataFrame(data=vectime)
     datadensity.insert(0, "Time", VectimeDf, allow_duplicates=False)
     #Complete the DF with parameters values
@@ -225,11 +250,11 @@ nbsims = len(list_seeds)
 dict_param = {}
 
 # Create parameters combinations
-beta_levels = [0.1,0.5,0.9]
-gamma_levels = [0.1,0.5,0.9]
-v_levels =[0.1,0.5,0.9]
-m_levels = [0.1,0.5,0.9]
-theta_levels = [0.5,1.5,2.5]
+beta_levels = [0.1,0.5,0.8]
+gamma_levels = [0.1]
+v_levels =[0.1,0.3,0.5]
+m_levels = [0.05, 0.1, 0.15]
+theta_levels = [15]
 
 Superlist = [beta_levels,gamma_levels,v_levels,m_levels,theta_levels] # List of list of levels, listception is my leitmotiv
 my_combinations = list(itertools.product(*Superlist)) # Compute the set of combination between lists and return it as a set of tuples
@@ -251,7 +276,7 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool(processes=CPUnb) # I don't really know what this is doing, probably creating some kind of logical space for thread assignation
     for key in dict_param.keys():
         for i in range(nbsims):
-            #pool.apply_async(RunModel, args=(list_seeds[i],key,dict_param[key])) # Launch Nbsim simulation, beware because that makes you loose error messages
-            RunModel(list_seeds[i],key,dict_param[key]) #Launch sims one by one, by makes the error messages reappear (useful for debugging)
+            pool.apply_async(RunModel, args=(list_seeds[i],key,dict_param[key])) # Launch Nbsim simulation, beware because that makes you loose error messages
+            #RunModel(list_seeds[i],key,dict_param[key]) #Launch sims one by one, by makes the error messages reappear (useful for debugging)
     pool.close() # Ends something
     pool.join() # Do something

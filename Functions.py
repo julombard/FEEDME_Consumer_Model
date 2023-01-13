@@ -5,7 +5,7 @@ import Classes
 
 def DoDirectMethod(Propensities, Sum_propensities, exactsteps, events, sites):
     rho = 0  # Not very convenient to put it here but it has to....
-
+    print(Propensities, 'HELLOOOOOO')
     for i in range(exactsteps):
         r1 = np.random.uniform(0,1,1) #Draw random numbers
         a0 = sum(Sum_propensities) # Overall propensity

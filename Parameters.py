@@ -1,3 +1,4 @@
+global beta, d, gamma, v ,m, e, p, theta, Taillepop, nbpatches
 #Model parameters
 beta = 0.04  #Infectious contact rate
 d = 0.5 #Per capita natural death rate
@@ -9,3 +10,4 @@ p = 1.5 # Ressource profitability
 theta = 15 # Medium Supply
 Taillepop = 100 # Initial population size
 nbpatches = 6 # Number of patches
+
