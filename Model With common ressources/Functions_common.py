@@ -1,6 +1,7 @@
 import numpy as np
 from copy import  deepcopy
-import Classes
+import Classes_common
+import Parameters
 
 
 def DoDirectMethod(Propensities, Sum_propensities, exactsteps, events, sites):
@@ -67,20 +68,21 @@ def SetMetapop(nbpatches, taillepop): #Creates sites objects containing populati
     ListSites=[] # List that will contain all sites
     for i in range(nbpatches): # Creates sites, the 1st will always contain one infected and the other 0
         if i == 0:
-            newsite = Classes.Site(effectifS=taillepop-10, effectifI=10, effectifR=100)
+            newsite = Classes_common.Site(effectifS=taillepop-10, effectifI=10)
             ListSites.append(newsite)
         else:
-            newsite = Classes.Site(effectifS=0, effectifI=0, effectifR=0)
+            newsite = Classes_common.Site(effectifS=0, effectifI=0)
             ListSites.append(newsite)
     print(ListSites)
     return ListSites
 
-def GetPropensites (Sites, Events): # Compute the propensities
+def GetPropensites (Sites, Events, Medium_ressource): # Compute the propensities
     Propensities = []
     for i in Events: # For each event
         PropEvent =[]
         for j in Sites : # And each site
-            S, I, R = j.effectifS, j.effectifI, j.effectifR # Get the xi
+            S, I = j.effectifS, j.effectifI# Get the xi
+            R = Medium_ressource / Parameters.nbpatches
             Prop = i.UpdatePropensity(S,I,R) #Compute propensity
             PropEvent.append(Prop)
         Propensities.append(PropEvent)
@@ -106,9 +108,7 @@ def GetPropensites_Per_sites (Sites, Events): # Compute the propensities
 def SumDensities(Sites) : # Count all S and I individual
     SumS = 0
     SumI = 0
-    SumR = 0
     for i in Sites:
         SumS += i.effectifS
         SumI += i.effectifI
-        SumR += i.effectifR
-    return SumS, SumI, SumR
+    return SumS, SumI

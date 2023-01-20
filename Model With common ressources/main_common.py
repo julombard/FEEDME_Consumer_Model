@@ -1,9 +1,9 @@
-import Functions
+import Functions_common
 import numpy as np
 import pandas as pd
 import multiprocessing
-import Parameters
-import Classes
+import Parameters_common
+import Classes_common
 import itertools
 from copy import deepcopy
 #A story inspired by Modified Poisson Tau leap algorithm from cao et. al. (2006)
@@ -36,16 +36,20 @@ def RunModel(seed,IDsim, vecparam) :
 
     print('Current m parameter running', beta, gamma, v, m, theta)
     #Update parameters needed in other files
-    Classes.beta = beta
+    Classes_common.beta = beta
 
-    Functions.beta = beta
-    Classes.m =m
-    Functions.m =m
-    Classes.gamma = vecparam[1]  # Proportion of vertical transmission, because parasite property
-    Classes.v = vecparam[2]  # Virulence, because parasite property
-    Classes.m = vecparam[3]  # Dispersal propensity, because parasite property
+    Functions_common.beta = beta
+    Classes_common.m =m
+    Functions_common.m =m
+    Classes_common.gamma = vecparam[1]  # Proportion of vertical transmission, because parasite property
+    Classes_common.v = vecparam[2]  # Virulence, because parasite property
+    Classes_common.m = vecparam[3]  # Dispersal propensity, because parasite property
     m_write = deepcopy(m)  # Because the value of m can change during the run (due to closing, opening)
-    Classes.theta = vecparam[4]  # Medium supply, Because why not
+    Classes_common.theta = vecparam[4]  # Medium supply, Because why not
+
+    #Initialize Medium
+    Medium_ressource = Parameters_common.Initial_Medium_Quality
+
 
     # Stocker les sorties dans un dictionnaire
     dico_densities_df = {}
@@ -55,26 +59,26 @@ def RunModel(seed,IDsim, vecparam) :
     nb_iterations = 0 #Store the number of interations to define times that are saved (later)
     sim_time = 0 # Simulation time (model time, not an iteration number)
     vectime = [0] # to keep t variable
-    tmax = 55 # Ending time
-    nbpatches = Parameters.nbpatches # Number of patches
-    Taillepop = Parameters.Taillepop # Initial local population sizes
+    tmax = 300 # Ending time
+    nbpatches = Parameters_common.nbpatches # Number of patches
+    Taillepop = Parameters_common.Taillepop # Initial local population sizes
 
     #Set the landscape
-    ListSites = Functions.SetMetapop(nbpatches, Taillepop)
+    ListSites = Functions_common.SetMetapop(nbpatches, Taillepop)
 
     # Stocker les sorties dans un dictionnaire
     dico_densities_df = {}
     dico_propensities_df ={}
 
     #Event definition
-    MediumRefreshing = Classes.Event(name='MediumRefreshing',propensity='theta', Schange='0', Ichange='0', Rchange ='1')
-    ReproductionS = Classes.Event(name='Reproduction S',propensity='e * p * self.R * self.S + + e * (1 - v)* (1-gamma) * p *self.R * self.I ', Schange='1', Ichange='0',Rchange ='-1')
-    ReproductionI = Classes.Event(name='Reproduction I',propensity='e * (1 - v)  * p *self.R * self.I', Schange='1', Ichange='0',Rchange ='-1') # Integrate the probability of vertical transmission separately
-    DeathS = Classes.Event(name='Death S',propensity='d*self.S', Schange='-1', Ichange='0',Rchange ='0')
-    DispersalS = Classes.Event(name='Dispersal S',propensity='m*self.S', Schange='-1', Ichange='0',Rchange ='0')
-    DispersalI = Classes.Event(name='Dispersal I',propensity='m*self.I', Schange='0', Ichange='-1',Rchange ='0')
-    Infection = Classes.Event(name='Infection',propensity='beta *self.S*self.I', Schange='-1', Ichange='1',Rchange ='0')
-    DeathI = Classes.Event(name='Death I',propensity='d *self.I', Schange='0', Ichange='-1',Rchange ='0')
+    MediumRefreshing = Classes_common.Event(name='MediumRefreshing',propensity='theta', Schange='0', Ichange='0', Rchange ='1')
+    ReproductionS = Classes_common.Event(name='Reproduction S',propensity='e * p * self.R * self.S + e * (1 - v)* (1-gamma) * p *self.R * self.I ', Schange='1', Ichange='0',Rchange ='-1')
+    ReproductionI = Classes_common.Event(name='Reproduction I',propensity='e * (1 - v)* gamma * p *self.R * self.I', Schange='0', Ichange='1',Rchange ='-1') # Integrate the probability of vertical transmission separately
+    DeathS = Classes_common.Event(name='Death S',propensity='d*self.S', Schange='-1', Ichange='0',Rchange ='0')
+    DispersalS = Classes_common.Event(name='Dispersal S',propensity='m*self.S', Schange='-1', Ichange='0',Rchange ='0')
+    DispersalI = Classes_common.Event(name='Dispersal I',propensity='m*self.I', Schange='0', Ichange='-1',Rchange ='0')
+    Infection = Classes_common.Event(name='Infection',propensity='beta *self.S*self.I', Schange='-1', Ichange='1',Rchange ='0')
+    DeathI = Classes_common.Event(name='Death I',propensity='d *self.I', Schange='0', Ichange='-1',Rchange ='0')
 
     #Event vector, cause tidying up things is always nice
     Events = [MediumRefreshing,ReproductionS,ReproductionI,DeathS,DispersalS,DispersalI,Infection,DeathI]
@@ -99,23 +103,23 @@ def RunModel(seed,IDsim, vecparam) :
 
         #Defnie the landscape configuration at given time -> Are the gates opened ?
         #Let's say that each X time, gates are openened during one time step
-        if round(sim_time,1)%5.5 == 0.0 : # X=5
+        if round(sim_time,1)%20 == 0.0 : # X=5
             if round(sim_time,0)==0 :
                 m = 0
-                Classes.m = 0
+                Classes_common.m = 0
             else :
                 m = vecparam[3]
-                Classes.m = vecparam[3]
+                Classes_common.m = vecparam[3]
         else :
             m = 0
-            Classes.m = 0
+            Classes_common.m = 0
         #print('VOICI M', m, Classes.m)
         #Compute the propensities
-        Propensities, Sum_propensities = Functions.GetPropensites(ListSites, Events) # Get a vector of propensities ordered by event and by sites
+        Propensities, Sum_propensities = Functions_common.GetPropensites(ListSites, Events, Medium_ressource) # Get a vector of propensities ordered by event and by sites
         #print("Propensities", Propensities)
         #print("Sum Propensities", Sum_propensities)
         #print("Events", Events)
-        SumS, SumI, SumR = Functions.SumDensities(ListSites) # Get total densities of species
+        SumS, SumI = Functions_common.SumDensities(ListSites) # Get total densities of species
 
         Tau_candidates = {}
         events_indexes = {}
@@ -157,7 +161,6 @@ def RunModel(seed,IDsim, vecparam) :
             # Multiply the state change in population by the number of triggers
             site.effectifS += event.Schange
             site.effectifI += event.Ichange
-            site.effectifR += event.Rchange
             #nbmigrants = 1
             # Here we distribute successful migrants among neighboring sites
 
@@ -182,12 +185,13 @@ def RunModel(seed,IDsim, vecparam) :
             # Multiply the state change in population by the number of triggers
             site.effectifS += event.Schange
             site.effectifI += event.Ichange
-            site.effectifR += event.Rchange
+            Medium_ressource += event.Rchange
 
 
         # Update time
         sim_time += Tau
-        print('Effectifs', SumS, SumI, SumR)
+        print('Effectifs', SumS, SumI)
+        print('Medium', Medium_ressource)
         # print('time increment', Tau)
         # print('Le temps passe si vite',sim_time)
 
@@ -246,7 +250,7 @@ def RunModel(seed,IDsim, vecparam) :
 
 
 # Paramètres de multiprocessing
-list_seeds = [1,2,3,4,5,6]
+list_seeds = [1,2,3,4,5]
 nbsims = len(list_seeds)
 
 #Create a list of parameters
@@ -254,11 +258,11 @@ nbsims = len(list_seeds)
 dict_param = {}
 
 # Create parameters combinations
-beta_levels = [0.05]
-gamma_levels = [0.1]
-v_levels =[0.1]
-m_levels = [0.15, 0.25,0.1]
-theta_levels = [15]
+beta_levels = [0.005,0.007,0.009]
+gamma_levels = [0.5]
+v_levels =[0.3]
+m_levels = [0.8]
+theta_levels = [20]
 
 Superlist = [beta_levels,gamma_levels,v_levels,m_levels,theta_levels] # List of list of levels, listception is my leitmotiv
 my_combinations = list(itertools.product(*Superlist)) # Compute the set of combination between lists and return it as a set of tuples

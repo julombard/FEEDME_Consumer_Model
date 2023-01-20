@@ -1,20 +1,19 @@
-import Parameters
+import Parameters_common
 global beta, d, gamma, v ,m, e, p, theta, Taillepop, nbpatches
 
-beta = Parameters.beta  #Infectious contact rate
-d = Parameters.d #Per capita natural death rate
-gamma = Parameters.gamma  #Proportion of vertical transmission
-v = Parameters.v # Virulence
-m = Parameters.m # Dispersal propensity
-e = Parameters.e # Ressource Encounter rate
-p = Parameters.p # Profitability (conversion ressource -> reproduction)
-theta = Parameters.theta # Medium supply
+beta = Parameters_common.beta  #Infectious contact rate
+d = Parameters_common.d #Per capita natural death rate
+gamma = Parameters_common.gamma  #Proportion of vertical transmission
+v = Parameters_common.v # Virulence
+m = Parameters_common.m # Dispersal propensity
+e = Parameters_common.e # Ressource Encounter rate
+p = Parameters_common.p # Profitability (conversion ressource -> reproduction)
+theta = Parameters_common.theta # Medium supply
 
 class Site(): #Site object containing (non explicit) individuals
-    def __init__(self,effectifS,effectifI, effectifR): #First try with arg way to implement feature unsure
+    def __init__(self,effectifS,effectifI): #First try with arg way to implement feature unsure
         self.effectifS = effectifS #S density
         self.effectifI = effectifI #I density
-        self.effectifR = effectifR  # I density
 
 
 class Event():
