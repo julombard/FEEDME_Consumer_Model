@@ -254,11 +254,11 @@ nbsims = len(list_seeds)
 dict_param = {}
 
 # Create parameters combinations
-beta_levels = [0.05]
+beta_levels = [0.005]
 gamma_levels = [0.1]
-v_levels =[0.1]
-m_levels = [0.15, 0.25,0.1]
-theta_levels = [15]
+v_levels =[0.3]
+m_levels = [0.1]
+theta_levels = [100]
 
 Superlist = [beta_levels,gamma_levels,v_levels,m_levels,theta_levels] # List of list of levels, listception is my leitmotiv
 my_combinations = list(itertools.product(*Superlist)) # Compute the set of combination between lists and return it as a set of tuples

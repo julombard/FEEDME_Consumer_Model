@@ -1,3 +1,5 @@
+import random
+
 import Functions_common
 import numpy as np
 import pandas as pd
@@ -32,7 +34,7 @@ def RunModel(seed,IDsim, vecparam) :
     v = vecparam[2]  # Virulence, because parasite property
     m = vecparam[3]  # Dispersal propensity, because parasite property
     m_write = deepcopy(m) # Because the value of m can change during the run (due to closing, opening)
-    theta = vecparam[4]  # Medium supply, Because why not
+    theta = Parameters_common.theta  # Medium supply, Because why not
 
     print('Current m parameter running', beta, gamma, v, m, theta)
     #Update parameters needed in other files
@@ -45,7 +47,7 @@ def RunModel(seed,IDsim, vecparam) :
     Classes_common.v = vecparam[2]  # Virulence, because parasite property
     Classes_common.m = vecparam[3]  # Dispersal propensity, because parasite property
     m_write = deepcopy(m)  # Because the value of m can change during the run (due to closing, opening)
-    Classes_common.theta = vecparam[4]  # Medium supply, Because why not
+    Classes_common.theta = Parameters_common.theta  # Medium supply, Because why not
 
     #Initialize Medium
     Medium_ressource = Parameters_common.Initial_Medium_Quality
@@ -103,7 +105,7 @@ def RunModel(seed,IDsim, vecparam) :
 
         #Defnie the landscape configuration at given time -> Are the gates opened ?
         #Let's say that each X time, gates are openened during one time step
-        if round(sim_time,1)%20 == 0.0 : # X=5
+        if round(sim_time,1)%35 == 0.0 : # X=5
             if round(sim_time,0)==0 :
                 m = 0
                 Classes_common.m = 0
@@ -246,27 +248,23 @@ def RunModel(seed,IDsim, vecparam) :
 
     datadensity.to_csv('Sim_outputs_'+IDsim+ "_" + str(seed) + '.csv')
 
-################### MULTIPROCESSING PART ###########
-
-
-# Paramètres de multiprocessing
-list_seeds = [1,2,3,4,5]
-nbsims = len(list_seeds)
+################### PARAMETER SAMPLING PART ###########
 
 #Create a list of parameters
 #Sorting matters ! Follow this one : beta, gamma, v , m , theta
 dict_param = {}
 
 # Create parameters combinations
-beta_levels = [0.005,0.007,0.009]
-gamma_levels = [0.5]
-v_levels =[0.3]
-m_levels = [0.8]
-theta_levels = [20]
+beta_levels = np.arange(0.001, 0.01, 0.005).tolist() # Set of values to be taken for a given parameter
+gamma_levels = np.arange(0.1, 1, 0.1).tolist()
+v_levels = np.arange(0.1, 1, 0.1).tolist()
+m_levels = np.arange(0.5, 2, 0.1).tolist()
 
-Superlist = [beta_levels,gamma_levels,v_levels,m_levels,theta_levels] # List of list of levels, listception is my leitmotiv
-my_combinations = list(itertools.product(*Superlist)) # Compute the set of combination between lists and return it as a set of tuples
+Superlist = [beta_levels,gamma_levels,v_levels,m_levels] # List of list of levels, listception is my leitmotiv
+set_combinations = list(itertools.product(*Superlist)) # Compute the set of combination between lists and return it as a set of tuples
 
+nb_combinations = 100 # Number of combinations to be tested
+my_combinations = random.sample(set_combinations, nb_combinations ) # Randomly sample nb_combination in the set of possible
 
 dico_param = {} # Enable an empty dictionary
 for i in range(len(my_combinations)) :
@@ -274,12 +272,19 @@ for i in range(len(my_combinations)) :
 print(dico_param)
 
 
+################### MULTIPROCESSING PART ###########
+
+
+# Paramètres de multiprocessing
+list_seeds = [1,2,3,4,5,6]
+nbsims = len(list_seeds)
+
 # In the end, list_params must contain each parameters combinations
 #Launch a batch of nbsim simulations
 #Do not f*ck with that guy otherwise the whole computer can crash
 if __name__ == '__main__':
     multiprocessing.freeze_support()
-    CPUnb=multiprocessing.cpu_count()-2 #Carefully count the number of available threads, and leave two of them alone (in order to do something else when simulating)
+    CPUnb=multiprocessing.cpu_count()-1 #Carefully count the number of available threads, and leave two of them alone (in order to do something else when simulating)
     print('nb CPU: '+str(CPUnb))
     pool = multiprocessing.Pool(processes=CPUnb) # I don't really know what this is doing, probably creating some kind of logical space for thread assignation
     for key in dict_param.keys():
